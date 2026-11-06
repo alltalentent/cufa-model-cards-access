@@ -16,7 +16,31 @@ function measures(s){return `${s.height?esc(s.height)+' cm':'身高未提供'} �
 function notice(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2400)}
 function portrait(s){return s.photos.some(Boolean)?`<img src="${(s.photos[1]||s.photos.find(Boolean)).src}" alt="${esc(s.name)}半身正面" loading="lazy" decoding="async">`:`<div class="no-photo"><b>—</b><span>尚無照片</span></div>`}
 function home(){app.innerHTML=`<section class="directory"><div class="search-row"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg><input id="search" type="search" placeholder="輸入學生姓名或學號" aria-label="搜尋學生姓名或學號" value="${esc(query)}" autocomplete="off"></div><select id="class-select" class="class-select" aria-label="選擇班級"><option value="" ${selectedClass===''?'selected':''}>選擇入學班級</option><option value="all" ${selectedClass==='all'?'selected':''}>全部學生</option>${classes.map(c=>`<option value="${esc(c)}" ${selectedClass===c?'selected':''}>${esc(classLabel(c))}</option>`).join('')}</select></div><div class="result-row"><span id="result-count" aria-live="polite"></span></div><div class="student-grid" id="students"></div></section>`;
-$('#search').addEventListener('input',e=>{query=e.target.value;results()});$('#search').addEventListener('keydown',e=>{if(e.key==='Enter'){const list=filtered();if(list.length===1)location.hash=list[0].id;else $('#students a')?.focus()}});$('#class-select').addEventListener('change',e=>{
+const search=$('#search');
+let composing=false;
+function updateSearch(){
+  if(query===search.value)return;
+  query=search.value;
+  results();
+}
+search.addEventListener('compositionstart',()=>{composing=true});
+search.addEventListener('compositionend',()=>{
+  composing=false;
+  updateSearch();
+});
+search.addEventListener('input',e=>{
+  if(!composing&&!e.isComposing)updateSearch();
+});
+search.addEventListener('keydown',e=>{
+  // Some browsers report the IME confirmation key as 229.
+  if(e.key!=='Enter'||composing||e.isComposing||e.keyCode===229)return;
+  e.preventDefault();
+  updateSearch();
+  const list=filtered();
+  if(list.length===1)location.hash=list[0].id;
+  else $('#students a')?.focus();
+});
+$('#class-select').addEventListener('change',e=>{
   const directory=$('.directory');
   const wasScrolled=directory.getBoundingClientRect().top<0;
   setClass(e.target.value);
