@@ -21,6 +21,20 @@
    const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:encrypted.slice(24,36),additionalData:encrypted.slice(0,8),tagLength:128},key,encrypted.slice(36));
    const stream=new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'));
    const data=await new Response(stream).json();if(!Array.isArray(data.records))throw new Error('format');
+   const corrections = await fetch('pose-review.enc');
+   if (!corrections.ok) throw new Error('network');
+   const bytes = new Uint8Array(await corrections.arrayBuffer());
+   const updated = await crypto.subtle.decrypt({
+    name:'AES-GCM', iv:bytes.slice(0,12), additionalData:new TextEncoder().encode('CUFA-POSE-1')
+   }, key, bytes.slice(12));
+   const changes = await new Response(new Blob([updated]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+   for (const student of data.records) {
+    if (!Object.hasOwn(changes, student.id)) continue;
+    const previous = student.photos.slice();
+    for (const [slot, photo] of Object.entries(changes[student.id])) {
+     student.photos[slot] = Number.isInteger(photo) ? previous[photo] : photo;
+    }
+   }
    document.getElementById('login').hidden=true;document.getElementById('app').hidden=false;document.getElementById('logout').hidden=false;document.getElementById('directory-link').hidden=false;status.textContent='';
    document.title='崇右表演藝術系｜Model Cards';window.dispatchEvent(new CustomEvent('cufa:unlock',{detail:data.records}));
   }catch(error){
