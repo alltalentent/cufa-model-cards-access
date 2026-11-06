@@ -7,7 +7,14 @@
   let passcode=input.value;input.value='';
   try{
    if(!crypto.subtle||!window.DecompressionStream)throw new Error('unsupported');
-   if(!encrypted){const r=await fetch('catalog.enc',{cache:'no-store'});if(!r.ok)throw new Error('network');encrypted=new Uint8Array(await r.arrayBuffer());}
+   if(!encrypted){
+    const manifestResponse=await fetch('catalog.parts.json',{cache:'no-store'});
+    if(manifestResponse.status===404){const r=await fetch('catalog.enc',{cache:'no-store'});if(!r.ok)throw new Error('network');encrypted=new Uint8Array(await r.arrayBuffer());}
+    else{if(!manifestResponse.ok)throw new Error('network');const manifest=await manifestResponse.json();if(manifest.format!=='CUFAMDC1'||!Array.isArray(manifest.parts)||!manifest.parts.length||manifest.parts.length>100)throw new Error('format');
+     const parts=[];let size=0;for(const part of manifest.parts){if(!/^catalog-\d{3}\.enc$/.test(part.file)||!Number.isSafeInteger(part.bytes)||part.bytes<1||part.bytes>10*1024*1024)throw new Error('format');const r=await fetch(part.file,{cache:'no-store'});if(!r.ok)throw new Error('network');const bytes=new Uint8Array(await r.arrayBuffer());if(bytes.length!==part.bytes)throw new Error('format');parts.push(bytes);size+=bytes.length;}
+     encrypted=new Uint8Array(size);let offset=0;for(const part of parts){encrypted.set(part,offset);offset+=part.length;}
+    }
+   }
    const header=new TextDecoder().decode(encrypted.slice(0,8));if(header!=='CUFAMDC1')throw new Error('format');
    const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(passcode),'PBKDF2',false,['deriveKey']);passcode='';
    const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:encrypted.slice(8,24),iterations:600000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
