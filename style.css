@@ -10,3 +10,11 @@
 .photo-slot img{aspect-ratio:2/3}@media print{.photo-slot img{height:91mm;width:100%;object-fit:contain}}
 
 .photo-pending{width:100%;aspect-ratio:2/3;background:#fff}@media print{.photo-pending{height:91mm}}
+
+.directory .search-row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding-block: 8px;
+  background: var(--paper);
+}
