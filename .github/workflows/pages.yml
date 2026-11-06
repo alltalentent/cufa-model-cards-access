@@ -22,7 +22,7 @@ jobs:
       - name: Package encrypted portal only
         run: |
           mkdir -p _site
-          cp index.html app.js auth.js style.css catalog.parts.json catalog-*.enc _site/
+          cp index.html app.js auth.js style.css fast-v1-*.enc _site/
           touch _site/.nojekyll
           test ! -e _site/data.json
           test ! -d _site/assets
